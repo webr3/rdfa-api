@@ -1,6 +1,6 @@
 # RDFa API Prototype #
 
-See http://webr3.org/apps/play/api/lib for full details.
+See [the initial documentation](http://webr3.org/apps/play/api/lib) for full details, and some examples.
 
 ## Contents ##
 
