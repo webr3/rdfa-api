@@ -2,7 +2,6 @@
  * rdfa-api extensions
  */
 (function(api) {
-  api.data = null;
   api.proxy = null;
   api.log = function(o) { console.log(o); };
   api.singlify = function(graph) {

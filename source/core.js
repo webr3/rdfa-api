@@ -635,5 +635,6 @@ rdfapi = function() {
       this.setMapping("ctag", "http://commontag.org/ns#")
     }
   };
+  api.data = new api.Data;
   return api;
 }();
