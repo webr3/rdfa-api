@@ -21,6 +21,38 @@
 rdfapi = function() {
   api = {};
   /**
+   * Hash (fast kv hash)
+   */
+  api.Hash = function(p) { this.empty() };
+  api.Hash.prototype = {
+    h: null,
+    get: function(k) { return this.h[k] },
+    set: function(k, v) { this.h[k] = v },
+    empty: function() { this.h = {} },
+    exists: function(k) { return this.h.hasOwnProperty(k) },
+    keys: function(proto) {
+      var keys = [];
+      proto = !proto;
+      for(var i in this.h) {
+        if(proto && Object.prototype[i]) { continue }
+        keys.push(i)
+      }
+      return keys
+    },
+    remove: function(k) {
+      var r = this.get(k);
+      delete this.h[k];
+      return r
+    },
+    toArray: function() {
+      var a = new Array;
+      var _ = this;
+      this.keys().forEach(function(k) { a.push(_.get(k)) });
+      return a
+    },
+    toString: function() { return JSON.stringify(this.h) }
+  };
+  /**
    * RDFNode
    */
   api.RDFNode = function() {};
@@ -410,8 +442,8 @@ rdfapi = function() {
    * Context implements DataContext
    */
   api.Context = function() {
-    this.curieMap = new Hash;
-    this.converterMap = new Hash;
+    this.curieMap = new api.Hash;
+    this.converterMap = new api.Hash;
     this._loadDefaultPrefixMap();
     this._loadDefaultTypeConverters()
   };
@@ -426,7 +458,6 @@ rdfapi = function() {
     createPlainLiteral: function(value, language) { return new api.PlainLiteral(value, language) },
     createTypedLiteral: function(value, type) {
       type = this._resolveType(type);
-      if(type == this._resolveType('xsd:string')) return this.createPlainLiteral(value);
       return new api.TypedLiteral(value, this.createIRI(type))
     },
     createTriple: function(s, p, o) { return new api.RDFTriple(s, p, o) },
@@ -611,6 +642,7 @@ rdfapi = function() {
       this.setMapping("ctag", "http://commontag.org/ns#")
     }
   };
+  api.data = new api.Data;
   return api;
 }();
 /**
@@ -702,6 +734,7 @@ rdfapi = function() {
       return out
     }
   };
+  api.select = function(query,graph) { return new api.querylangs.RDFSelector(api.data.context).select(query,graph); };
 })(rdfapi);
 /**
  * Parsers (NTriples, Turtle, RDF/XML)
@@ -737,7 +770,7 @@ rdfapi = function() {
    */
   api.parsers.NTriples = function(context) {
     this.context = context;
-    this.bnHash = new Hash
+    this.bnHash = new api.Hash
   };
   api.parsers.NTriples.isComment = new RegExp("^[ \t]*#", "");
   api.parsers.NTriples.isEmptyLine = new RegExp("^[ \t]*$", "");
@@ -822,7 +855,7 @@ rdfapi = function() {
    */
   api.parsers.Turtle = function(context) {
     this.context = context;
-    this.bnHash = new Hash
+    this.bnHash = new api.Hash
   };
   api.parsers.Turtle.isWhitespace = new RegExp("^[ \t\r\n#]+", "");
   api.parsers.Turtle.initialWhitespace = new RegExp("^[ \t\r\n]+", "");
@@ -1093,7 +1126,7 @@ rdfapi = function() {
    */
   api.parsers.RDFXML = function(context) {
     this.context = context;
-    this.bnHash = new Hash
+    this.bnHash = new api.Hash
   };
   api.parsers.RDFXML.NS_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
   api.parsers.RDFXML.NS_RDFS = "http://www.w3.org/2000/01/rdf-schema#";
@@ -1434,22 +1467,22 @@ rdfapi = function() {
       }
       var s1 = this.shrink(t.subject);
       var p = this.shrink(t.property, true);
-      if(!this.index.exists(s1)) { this.index.set(s1, new Hash) }
+      if(!this.index.exists(s1)) { this.index.set(s1, new api.Hash) }
       if(!this.index.get(s1).exists(p)) { this.index.get(s1).set(p, new Array) }
       this.index.get(s1).get(p).push(t.object)
     },
     anonBNode: function(subject, indent) { return this.propertyObjectChain(this.index.get(subject), indent) },
     createPrefixMap: function() {
       var m = this.context.getMapping();
-      var p = this.prefixMap = new Hash;
+      var p = this.prefixMap = new api.Hash;
       m.keys().forEach(function(k, i, a) { p.set(m.get(k).toString(), k.concat(":")) })
     },
     initiate: function() {
-      this.index = new Hash;
+      this.index = new api.Hash;
       this.usedPrefixes = new Array;
-      this.nonAnonBNodes = new Hash;
+      this.nonAnonBNodes = new api.Hash;
       this.skipSubjects = new Array;
-      this.lists = new Hash
+      this.lists = new api.Hash
     },
     output: function(o) {
       if(o.nodeType() == "IRI") { return this.shrink(o) }
@@ -1522,7 +1555,7 @@ rdfapi = function() {
         if(single.length > 0) { out.push(single + " .\n") }
       });
       if(this.usedPrefixes.length > 0) {
-        var invertedMap = new Hash;
+        var invertedMap = new api.Hash;
         this.prefixMap.keys().forEach(function(k, i, h) { if(_.usedPrefixes.contains(k)) { invertedMap.set(_.prefixMap.get(k), k) } });
         var prefixes = invertedMap.keys();
         prefixes.sort();
@@ -1590,6 +1623,8 @@ rdfapi = function() {
       return graph
     }
   };
+  api.nt = function(graph) { return new api.serializers.NTriples(api.data.context).serialize(graph); };
+  api.turtle = function(graph) { return new api.serializers.Turtle(api.data.context).serialize(graph); };
 })(rdfapi);
 /**
  * rdfapi.filters
@@ -1607,10 +1642,61 @@ rdfapi = function() {
   };
 })(rdfapi);
 /**
+ * rdfapi.Converter
+ * Native ecmascript types to Typed and Plain Literals 
+ */
+(function(api) {
+  api.Converter = function() { this.c = api.data.context };
+  api.Converter.INTEGER = new RegExp("^(-|\\+)?[0-9]+$", "");
+  api.Converter.DOUBLE = new RegExp("^(-|\\+)?(([0-9]+\\.[0-9]*[eE]{1}(-|\\+)?[0-9]+)|(\\.[0-9]+[eE]{1}(-|\\+)?[0-9]+)|([0-9]+[eE]{1}(-|\\+)?[0-9]+))$", "");
+  api.Converter.DECIMAL = new RegExp("^(-|\\+)?[0-9]*\\.[0-9]+?$", "");
+  api.Converter.prototype = {
+    c: null,
+    _string: function(s,a) {
+      if(!(Boolean(a).valueOf()) || a.indexOf(':') < 0) return this.c.createPlainLiteral(s,a);
+      return this.c.createTypedLiteral(s,a);
+    },
+    _boolean: function(b) {
+      return this.c.createTypedLiteral(b?"true":"false",'xsd:boolean')
+    },
+    _date: function(d,ms) {
+      function pad(n){ return n<10 ? '0'+n : n }
+      var s = d.getUTCFullYear()+'-' + pad(d.getUTCMonth()+1)+'-' + pad(d.getUTCDate())+'T'
+        + pad(d.getUTCHours())+':' + pad(d.getUTCMinutes())+':' + pad(d.getUTCSeconds());
+      if(Boolean(ms)) s += d.getUTCMilliseconds() > 0 ? s+'.'+d.getUTCMilliseconds() : s;
+      return this.c.createTypedLiteral(s += 'Z','xsd:dateTime');
+    },
+    _number: function(n) {
+      if(n == Number.POSITIVE_INFINITY) return this.c.createTypedLiteral('INF','xsd:double');
+      if(n == Number.NEGATIVE_INFINITY) return this.c.createTypedLiteral('-INF','xsd:double');
+      if(n == Number.NaN) return this.c.createTypedLiteral('NaN','xsd:double');
+      n = n.toString();
+      if(api.Converter.INTEGER.test(n)) return this.c.createTypedLiteral(n,'xsd:integer');
+      if(api.Converter.DECIMAL.test(n)) return this.c.createTypedLiteral(n,'xsd:decimal');
+      if(api.Converter.DOUBLE.test(n)) return this.c.createTypedLiteral(n,'xsd:double');
+      throw new TypeError("Can't convert weird number: " + n );
+    },
+    convert: function(l,r) {
+      switch(typeof l) {
+        case 'string': return this._string(l,r);
+        case 'boolean': return this._boolean(l);
+        case 'number': return this._number(l);
+        case 'object':
+          switch(l.constructor.name) {
+            case 'Boolean': return this._boolean(l.valueOf());
+            case 'Date': return this._date(l);
+            case 'Number': return this._number(l);
+          }        
+      }
+      throw new TypeError('Cannot convert type: ' + l.constructor.name);
+    }
+  };
+  api.converter = new api.Converter;
+})(rdfapi);
+/**
  * rdfa-api extensions
  */
 (function(api) {
-  api.data = null;
   api.proxy = null;
   api.log = function(o) { console.log(o); };
   api.singlify = function(graph) {
@@ -1697,7 +1783,6 @@ rdfapi = function() {
     return o;
   }
   api.t = function(s,p,o) { return api.data.context.createTriple(s,p,o); }
-  api.select = function(query,graph) { return new api.querylangs.RDFSelector(api.data.context).select(query,graph); };
   api.errorHandler = null;
   api.save = function(iri, data) {
     var async = false;
@@ -1818,34 +1903,7 @@ rdfapi = function() {
     }, async);
     return true
   };
-  api.nt = function(graph) { return new api.serializers.NTriples(api.data.context).serialize(graph); };
-  api.turtle = function(graph) { return new api.serializers.Turtle(api.data.context).serialize(graph); };
 })(rdfapi);
-/**
- * Hash (fast kv hash)
- */
-Hash = function(p) { this.empty() };
-Hash.prototype = {
-  h: null,
-  get: function(k) { return this.h[k] },
-  set: function(k, v) { this.h[k] = v },
-  empty: function() { this.h = {} },
-  exists: function(k) { return this.h.hasOwnProperty(k) },
-  iterator: function() { return this.h.iterator() },
-  keys: function() { return this.h.instanceKeys() },
-  remove: function(k) {
-    var r = this.get(k);
-    delete this.h[k];
-    return r
-  },
-  toArray: function() {
-    var a = new Array;
-    var _ = this;
-    this.keys().forEach(function(k) { a.push(_.get(k)) });
-    return a
-  },
-  toString: function() { return JSON.stringify(this.h) }
-};
 /**
  * ECMAScript-262 v5 Compatability
  */
@@ -1905,24 +1963,6 @@ Array.prototype.filter = Array.prototype.filter || function(fun /*, thisp */) {
 /**
  * Custom stuff that may get factored out..
  */
-Object.prototype.iterator = function() {
-  var o = this.instanceKeys();
-  var y = this;
-  return {
-    cur:0, arr:o,
-    hasNext: function() { return this.cur < this.arr.length },
-    next:function() { return y[this.arr[this.cur++]] }
-  }
-};
-Object.prototype.instanceKeys = function(proto) {
-  var keys = [];
-  proto = !proto;
-  for(var i in this) {
-    if(proto && Object.prototype[i]) { continue }
-    keys.push(i)
-  }
-  return keys
-};
 String.prototype.endsWith = function(s, i) {
   if(i) { return s.toLowerCase() == this.substring(this.length - s.length).toLowerCase() }
   return s == this.substring(this.length - s.length)
@@ -1931,35 +1971,16 @@ String.prototype.startsWith = function(s, i) {
   if(i) { return s.toLowerCase() == this.substring(0, s.length).toLowerCase() }
   return s == this.substring(0, s.length)
 };
-Array.prototype.remove = Array.prototype.indexOf ? function(obj) {
+Array.prototype.remove = function(obj) {
   var idx = this.indexOf(obj);
-  if(idx == -1) {  return false }
+  if(idx == -1) { return false }
   this.splice(idx, 1);
   return true
-} : function(obj) {
-  var i = 0;
-  var l = this.length;
-  while(i < l) {
-    if(this[i] == obj) {
-      this.splice(i, 1);
-      return true
-    }
-    i++
-  }
-  return false
-};
-Array.prototype.iterator = function() {
-  return {
-    cur: 0, arr: this,
-    hasNext: function() { return this.cur < this.arr.length },
-    next: function() { return this.arr[this.cur++] }
-  }
 };
 Array.prototype.contains = function(i) { return this.indexOf(i) >= 0 };
 /**
  * Instantiation
  */
-rdfapi.data = new rdfapi.Data;
 if(typeof exports != "undefined") {
   module.exports = rdfapi; // we require this.. .. ....
 } else if(typeof document == 'object') {

@@ -30,7 +30,7 @@ rdfapi = function() {
     set: function(k, v) { this.h[k] = v },
     empty: function() { this.h = {} },
     exists: function(k) { return this.h.hasOwnProperty(k) },
-    keys: function() {
+    keys: function(proto) {
       var keys = [];
       proto = !proto;
       for(var i in this.h) {
