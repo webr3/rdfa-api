@@ -32,7 +32,7 @@
    */
   api.parsers.NTriples = function(context) {
     this.context = context;
-    this.bnHash = new Hash
+    this.bnHash = new api.Hash
   };
   api.parsers.NTriples.isComment = new RegExp("^[ \t]*#", "");
   api.parsers.NTriples.isEmptyLine = new RegExp("^[ \t]*$", "");
@@ -117,7 +117,7 @@
    */
   api.parsers.Turtle = function(context) {
     this.context = context;
-    this.bnHash = new Hash
+    this.bnHash = new api.Hash
   };
   api.parsers.Turtle.isWhitespace = new RegExp("^[ \t\r\n#]+", "");
   api.parsers.Turtle.initialWhitespace = new RegExp("^[ \t\r\n]+", "");
@@ -388,7 +388,7 @@
    */
   api.parsers.RDFXML = function(context) {
     this.context = context;
-    this.bnHash = new Hash
+    this.bnHash = new api.Hash
   };
   api.parsers.RDFXML.NS_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
   api.parsers.RDFXML.NS_RDFS = "http://www.w3.org/2000/01/rdf-schema#";

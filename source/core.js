@@ -21,6 +21,31 @@
 rdfapi = function() {
   api = {};
   /**
+   * Hash (fast kv hash)
+   */
+  api.Hash = function(p) { this.empty() };
+  api.Hash.prototype = {
+    h: null,
+    get: function(k) { return this.h[k] },
+    set: function(k, v) { this.h[k] = v },
+    empty: function() { this.h = {} },
+    exists: function(k) { return this.h.hasOwnProperty(k) },
+    iterator: function() { return this.h.iterator() },
+    keys: function() { return this.h.instanceKeys() },
+    remove: function(k) {
+      var r = this.get(k);
+      delete this.h[k];
+      return r
+    },
+    toArray: function() {
+      var a = new Array;
+      var _ = this;
+      this.keys().forEach(function(k) { a.push(_.get(k)) });
+      return a
+    },
+    toString: function() { return JSON.stringify(this.h) }
+  };
+  /**
    * RDFNode
    */
   api.RDFNode = function() {};
@@ -410,8 +435,8 @@ rdfapi = function() {
    * Context implements DataContext
    */
   api.Context = function() {
-    this.curieMap = new Hash;
-    this.converterMap = new Hash;
+    this.curieMap = new api.Hash;
+    this.converterMap = new api.Hash;
     this._loadDefaultPrefixMap();
     this._loadDefaultTypeConverters()
   };
@@ -426,7 +451,6 @@ rdfapi = function() {
     createPlainLiteral: function(value, language) { return new api.PlainLiteral(value, language) },
     createTypedLiteral: function(value, type) {
       type = this._resolveType(type);
-      if(type == this._resolveType('xsd:string')) return this.createPlainLiteral(value);
       return new api.TypedLiteral(value, this.createIRI(type))
     },
     createTriple: function(s, p, o) { return new api.RDFTriple(s, p, o) },

@@ -38,22 +38,22 @@
       }
       var s1 = this.shrink(t.subject);
       var p = this.shrink(t.property, true);
-      if(!this.index.exists(s1)) { this.index.set(s1, new Hash) }
+      if(!this.index.exists(s1)) { this.index.set(s1, new api.Hash) }
       if(!this.index.get(s1).exists(p)) { this.index.get(s1).set(p, new Array) }
       this.index.get(s1).get(p).push(t.object)
     },
     anonBNode: function(subject, indent) { return this.propertyObjectChain(this.index.get(subject), indent) },
     createPrefixMap: function() {
       var m = this.context.getMapping();
-      var p = this.prefixMap = new Hash;
+      var p = this.prefixMap = new api.Hash;
       m.keys().forEach(function(k, i, a) { p.set(m.get(k).toString(), k.concat(":")) })
     },
     initiate: function() {
-      this.index = new Hash;
+      this.index = new api.Hash;
       this.usedPrefixes = new Array;
-      this.nonAnonBNodes = new Hash;
+      this.nonAnonBNodes = new api.Hash;
       this.skipSubjects = new Array;
-      this.lists = new Hash
+      this.lists = new api.Hash
     },
     output: function(o) {
       if(o.nodeType() == "IRI") { return this.shrink(o) }
@@ -126,7 +126,7 @@
         if(single.length > 0) { out.push(single + " .\n") }
       });
       if(this.usedPrefixes.length > 0) {
-        var invertedMap = new Hash;
+        var invertedMap = new api.Hash;
         this.prefixMap.keys().forEach(function(k, i, h) { if(_.usedPrefixes.contains(k)) { invertedMap.set(_.prefixMap.get(k), k) } });
         var prefixes = invertedMap.keys();
         prefixes.sort();
