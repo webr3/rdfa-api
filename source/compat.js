@@ -57,24 +57,6 @@ Array.prototype.filter = Array.prototype.filter || function(fun /*, thisp */) {
 /**
  * Custom stuff that may get factored out..
  */
-Object.prototype.iterator = function() {
-  var o = this.instanceKeys();
-  var y = this;
-  return {
-    cur:0, arr:o,
-    hasNext: function() { return this.cur < this.arr.length },
-    next:function() { return y[this.arr[this.cur++]] }
-  }
-};
-Object.prototype.instanceKeys = function(proto) {
-  var keys = [];
-  proto = !proto;
-  for(var i in this) {
-    if(proto && Object.prototype[i]) { continue }
-    keys.push(i)
-  }
-  return keys
-};
 String.prototype.endsWith = function(s, i) {
   if(i) { return s.toLowerCase() == this.substring(this.length - s.length).toLowerCase() }
   return s == this.substring(this.length - s.length)
@@ -83,28 +65,10 @@ String.prototype.startsWith = function(s, i) {
   if(i) { return s.toLowerCase() == this.substring(0, s.length).toLowerCase() }
   return s == this.substring(0, s.length)
 };
-Array.prototype.remove = Array.prototype.indexOf ? function(obj) {
+Array.prototype.remove = function(obj) {
   var idx = this.indexOf(obj);
-  if(idx == -1) {  return false }
+  if(idx == -1) { return false }
   this.splice(idx, 1);
   return true
-} : function(obj) {
-  var i = 0;
-  var l = this.length;
-  while(i < l) {
-    if(this[i] == obj) {
-      this.splice(i, 1);
-      return true
-    }
-    i++
-  }
-  return false
-};
-Array.prototype.iterator = function() {
-  return {
-    cur: 0, arr: this,
-    hasNext: function() { return this.cur < this.arr.length },
-    next: function() { return this.arr[this.cur++] }
-  }
 };
 Array.prototype.contains = function(i) { return this.indexOf(i) >= 0 };

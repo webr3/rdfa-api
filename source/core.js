@@ -30,8 +30,15 @@ rdfapi = function() {
     set: function(k, v) { this.h[k] = v },
     empty: function() { this.h = {} },
     exists: function(k) { return this.h.hasOwnProperty(k) },
-    iterator: function() { return this.h.iterator() },
-    keys: function() { return this.h.instanceKeys() },
+    keys: function() {
+      var keys = [];
+      proto = !proto;
+      for(var i in this.h) {
+        if(proto && Object.prototype[i]) { continue }
+        keys.push(i)
+      }
+      return keys
+    },
     remove: function(k) {
       var r = this.get(k);
       delete this.h[k];
