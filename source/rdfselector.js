@@ -87,4 +87,5 @@
       return out
     }
   };
+  api.select = function(query,graph) { return new api.querylangs.RDFSelector(api.data.context).select(query,graph); };
 })(rdfapi);

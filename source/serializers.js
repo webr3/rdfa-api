@@ -194,4 +194,6 @@
       return graph
     }
   };
+  api.nt = function(graph) { return new api.serializers.NTriples(api.data.context).serialize(graph); };
+  api.turtle = function(graph) { return new api.serializers.Turtle(api.data.context).serialize(graph); };
 })(rdfapi);

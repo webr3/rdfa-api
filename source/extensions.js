@@ -88,7 +88,6 @@
     return o;
   }
   api.t = function(s,p,o) { return api.data.context.createTriple(s,p,o); }
-  api.select = function(query,graph) { return new api.querylangs.RDFSelector(api.data.context).select(query,graph); };
   api.errorHandler = null;
   api.save = function(iri, data) {
     var async = false;
@@ -209,6 +208,4 @@
     }, async);
     return true
   };
-  api.nt = function(graph) { return new api.serializers.NTriples(api.data.context).serialize(graph); };
-  api.turtle = function(graph) { return new api.serializers.Turtle(api.data.context).serialize(graph); };
 })(rdfapi);
