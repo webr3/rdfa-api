@@ -64,30 +64,6 @@
     }
     return out;
   };
-  api.iri = function(iri) {
-    iri = iri.toString();
-    if(iri.startsWith('<') && iri.endsWith('>') ) { iri = iri.slice(1,iri.length-1); }
-    return api.data.context.createIRI(iri);
-  };
-  api.resolve = function(curie) { return api.data.context.resolveCurie(curie); };
-  api.link = function(s,p,o) {
-    s = api.blankNodeOrIRI(s);
-    o = api.blankNodeOrIRI(o);
-    return api.data.context.createTriple(s,api.iri(p),o);
-  }
-  api.blankNodeOrIRI = function(o) {
-    if(typeof o == "string") {
-      if(o.substring(0,2) == "_:") {
-        var b = api.data.context.createBlankNode();
-        b.value = o;
-        o = b;
-      } else {
-        o = api.iri(o);
-      }
-    }
-    return o;
-  }
-  api.t = function(s,p,o) { return api.data.context.createTriple(s,p,o); }
   api.errorHandler = null;
   api.save = function(iri, data) {
     var async = false;

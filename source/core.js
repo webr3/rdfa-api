@@ -73,6 +73,7 @@ rdfapi = function() {
     },
     nodeType: function() { return "RDFNode" },
     toNT: function() { return "" },
+    toCanonical: function() { return this.toNT() },
     toString: function() { return this.value },
     encodeString: function(s) {
       var out = "";
@@ -127,7 +128,11 @@ rdfapi = function() {
   /**
    * PlainLiteral
    */
-  api.PlainLiteral = function(value, language) { this.value = value; this.language = language };
+  api.PlainLiteral = function(value, language) {
+    if(typeof language == "string" && language[0] == "@") language = language.slice(1);
+    this.value = value;
+    this.language = language;
+  };
   api.PlainLiteral.prototype = {
     __proto__: api.RDFNode.prototype,
     language: null,
@@ -394,7 +399,6 @@ rdfapi = function() {
     forEach: function(callbck) { this.graph.forEach(callbck) },
     filter: function(filter) { return new api.Graph(this.graph.filter(filter)); },
     apply: function(filter) { this.graph = this.graph.filter(filter); this.length = this.graph.length; },
-    iterator: function() { return new api.GraphIterator(this) },
     toArray: function() { return this.graph.slice() }
   };
   /**
@@ -426,17 +430,7 @@ rdfapi = function() {
     forEach: function(callbck) { this.graph.forEach(callbck) },
     filter: function(filter) { return new api.SlowGraph(this.graph.filter(filter)); },
     apply: function(filter) { this.graph = this.graph.filter(filter); this.length = this.graph.length; },
-    iterator: function() { return new api.GraphIterator(this) },
     toArray: function() { return this.graph.slice() }
-  };
-  /**
-   * GraphIterator
-   */
-  api.GraphIterator = function(graph) { this.graph = graph; this.cur = 0 };
-  api.GraphIterator.prototype = {
-    cur: null, graph: null,
-    hasNext: function() { return this.cur < this.graph.length },
-    next: function() { return this.graph.get(this.cur++) }
   };
   /**
    * Context implements DataContext
@@ -458,6 +452,7 @@ rdfapi = function() {
     createPlainLiteral: function(value, language) { return new api.PlainLiteral(value, language) },
     createTypedLiteral: function(value, type) {
       type = this._resolveType(type);
+      if(type == this._resolveType("rdf:PlainLiteral")) return this.createPlainLiteral(value);
       return new api.TypedLiteral(value, this.createIRI(type))
     },
     createTriple: function(s, p, o) { return new api.RDFTriple(s, p, o) },

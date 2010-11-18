@@ -49,4 +49,54 @@
     }
   };
   api.converter = new api.Converter;
+  api.resolve = function(curie) { return api.data.context.resolveCurie(curie); };
+  api.iri = function(iri) {
+    iri = iri.toString();
+    if(iri.startsWith('<') && iri.endsWith('>') ) { iri = iri.slice(1,iri.length-1); }
+    return api.data.context.createIRI(iri);
+  };
+  api.reference = function(i) {
+    if(typeof i == "string" && i.indexOf("//") >= 0) return api.iri(i); 
+    return api.iri(api.resolve(i))
+  };
+  api.blankNode = function(ref) {
+    var b = api.data.context.createBlankNode();
+    if(ref) {
+      if(ref.substring(0,2) == "_:") {
+        b.value = o;
+      } else {
+        b.value = '_:'+o;
+      }
+    }
+    return b;
+  };
+  api.blankNodeOrIRI = function(o) {
+    if(typeof o == "string") {
+      if(o.substring(0,2) == "_:") {
+        o = api.blankNode(o);
+      } else {
+        o = api.reference(o);
+      }
+    }
+    return o;
+  };
+  api.literal = function(o,t) {
+    return api.converter.convert(o,t);
+  };
+  api.node = function(o,t) {
+    if(!t && typeof o == "string" && o.indexOf(":") >= 0) o = api.blankNodeOrIRI(o);
+    if(!o.nodeType) o = api.literal(o,t);
+    return o;
+  }
+  api.link = function(s,p,o) {
+    s = api.blankNodeOrIRI(s);
+    o = api.blankNodeOrIRI(o);
+    return api.data.context.createTriple(s,api.iri(p),o);
+  };
+  api.t = api.triple = function(s,p,o,t) {
+    s = api.blankNodeOrIRI(s);
+    p = api.resolve(p);
+    o = api.node(o,t);
+    return api.data.context.createTriple(s,p,o);
+  };
 })(rdfapi);

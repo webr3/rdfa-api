@@ -27,6 +27,7 @@ See [the initial documentation](http://webr3.org/apps/play/api/lib) for full det
 - XHR & CORS Support with full content negotiation and auto-selection (and proxy support).
 - Aligned with ECMAScript V5 to give forEach, filter, map/reduce for Graphs
 - Quantification (universal/existential), smushing, singlification and reference replacement
+- Automatic type conversion of js native types & CURIEs
 
 ## Coming Soon ##
 - RDFa 1 and 1.1 Parser/Processor
@@ -35,7 +36,6 @@ See [the initial documentation](http://webr3.org/apps/play/api/lib) for full det
 - Full node.js compatibility (currently RDF/XML parser doesn't work in node)
 - WebSockets Triple Streams (Server & Client)
 - Triple and Graph Stores
-- Automatic type conversion of js native types & CURIEs
 - Ontology awareness, inference, smushing (partially supported already) and reasoning
 - Optional data validation and type conversion based on range/domain and owl:Restriction
 - ACL and WebID Protocol extensions

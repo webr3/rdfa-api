@@ -73,6 +73,7 @@ rdfapi = function() {
     },
     nodeType: function() { return "RDFNode" },
     toNT: function() { return "" },
+    toCanonical: function() { return this.toNT() },
     toString: function() { return this.value },
     encodeString: function(s) {
       var out = "";
@@ -127,7 +128,11 @@ rdfapi = function() {
   /**
    * PlainLiteral
    */
-  api.PlainLiteral = function(value, language) { this.value = value; this.language = language };
+  api.PlainLiteral = function(value, language) {
+    if(typeof language == "string" && language[0] == "@") language = language.slice(1);
+    this.value = value;
+    this.language = language;
+  };
   api.PlainLiteral.prototype = {
     __proto__: api.RDFNode.prototype,
     language: null,
@@ -394,7 +399,6 @@ rdfapi = function() {
     forEach: function(callbck) { this.graph.forEach(callbck) },
     filter: function(filter) { return new api.Graph(this.graph.filter(filter)); },
     apply: function(filter) { this.graph = this.graph.filter(filter); this.length = this.graph.length; },
-    iterator: function() { return new api.GraphIterator(this) },
     toArray: function() { return this.graph.slice() }
   };
   /**
@@ -426,17 +430,7 @@ rdfapi = function() {
     forEach: function(callbck) { this.graph.forEach(callbck) },
     filter: function(filter) { return new api.SlowGraph(this.graph.filter(filter)); },
     apply: function(filter) { this.graph = this.graph.filter(filter); this.length = this.graph.length; },
-    iterator: function() { return new api.GraphIterator(this) },
     toArray: function() { return this.graph.slice() }
-  };
-  /**
-   * GraphIterator
-   */
-  api.GraphIterator = function(graph) { this.graph = graph; this.cur = 0 };
-  api.GraphIterator.prototype = {
-    cur: null, graph: null,
-    hasNext: function() { return this.cur < this.graph.length },
-    next: function() { return this.graph.get(this.cur++) }
   };
   /**
    * Context implements DataContext
@@ -458,6 +452,7 @@ rdfapi = function() {
     createPlainLiteral: function(value, language) { return new api.PlainLiteral(value, language) },
     createTypedLiteral: function(value, type) {
       type = this._resolveType(type);
+      if(type == this._resolveType("rdf:PlainLiteral")) return this.createPlainLiteral(value);
       return new api.TypedLiteral(value, this.createIRI(type))
     },
     createTriple: function(s, p, o) { return new api.RDFTriple(s, p, o) },
@@ -1692,6 +1687,56 @@ rdfapi = function() {
     }
   };
   api.converter = new api.Converter;
+  api.resolve = function(curie) { return api.data.context.resolveCurie(curie); };
+  api.iri = function(iri) {
+    iri = iri.toString();
+    if(iri.startsWith('<') && iri.endsWith('>') ) { iri = iri.slice(1,iri.length-1); }
+    return api.data.context.createIRI(iri);
+  };
+  api.reference = function(i) {
+    if(typeof i == "string" && i.indexOf("//") >= 0) return api.iri(i); 
+    return api.iri(api.resolve(i))
+  };
+  api.blankNode = function(ref) {
+    var b = api.data.context.createBlankNode();
+    if(ref) {
+      if(ref.substring(0,2) == "_:") {
+        b.value = o;
+      } else {
+        b.value = '_:'+o;
+      }
+    }
+    return b;
+  };
+  api.blankNodeOrIRI = function(o) {
+    if(typeof o == "string") {
+      if(o.substring(0,2) == "_:") {
+        o = api.blankNode(o);
+      } else {
+        o = api.reference(o);
+      }
+    }
+    return o;
+  };
+  api.literal = function(o,t) {
+    return api.converter.convert(o,t);
+  };
+  api.node = function(o,t) {
+    if(!t && typeof o == "string" && o.indexOf(":") >= 0) o = api.blankNodeOrIRI(o);
+    if(!o.nodeType) o = api.literal(o,t);
+    return o;
+  }
+  api.link = function(s,p,o) {
+    s = api.blankNodeOrIRI(s);
+    o = api.blankNodeOrIRI(o);
+    return api.data.context.createTriple(s,api.iri(p),o);
+  };
+  api.t = api.triple = function(s,p,o,t) {
+    s = api.blankNodeOrIRI(s);
+    p = api.resolve(p);
+    o = api.node(o,t);
+    return api.data.context.createTriple(s,p,o);
+  };
 })(rdfapi);
 /**
  * rdfa-api extensions
@@ -1759,30 +1804,6 @@ rdfapi = function() {
     }
     return out;
   };
-  api.iri = function(iri) {
-    iri = iri.toString();
-    if(iri.startsWith('<') && iri.endsWith('>') ) { iri = iri.slice(1,iri.length-1); }
-    return api.data.context.createIRI(iri);
-  };
-  api.resolve = function(curie) { return api.data.context.resolveCurie(curie); };
-  api.link = function(s,p,o) {
-    s = api.blankNodeOrIRI(s);
-    o = api.blankNodeOrIRI(o);
-    return api.data.context.createTriple(s,api.iri(p),o);
-  }
-  api.blankNodeOrIRI = function(o) {
-    if(typeof o == "string") {
-      if(o.substring(0,2) == "_:") {
-        var b = api.data.context.createBlankNode();
-        b.value = o;
-        o = b;
-      } else {
-        o = api.iri(o);
-      }
-    }
-    return o;
-  }
-  api.t = function(s,p,o) { return api.data.context.createTriple(s,p,o); }
   api.errorHandler = null;
   api.save = function(iri, data) {
     var async = false;
